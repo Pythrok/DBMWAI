@@ -217,6 +217,7 @@ function displayProjects() {
             <p>${project.description}</p>
             <div class="project-author">by ${project.author}</div>
         `;
+        projectCard.addEventListener('click', () => openProject(project));
         projectsList.appendChild(projectCard);
     });
 }
@@ -313,4 +314,290 @@ document.addEventListener('DOMContentLoaded', () => {
     setupConfigForm();
     setupProjectModal();
     displayProjects();
+    setupChatInterface();
+    setupProjectConfig();
 });
+
+let currentProject = null;
+
+function openProject(project) {
+    currentProject = project;
+    
+    document.getElementById('mainSidebar').style.display = 'none';
+    document.getElementById('projectSidebar').style.display = 'block';
+    document.getElementById('currentProjectName').textContent = project.name;
+    
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.style.display = 'none');
+    
+    document.getElementById('project-main-section').style.display = 'block';
+    
+    const projectNavLinks = document.querySelectorAll('#projectSidebar .nav-link');
+    projectNavLinks.forEach(link => link.classList.remove('active'));
+    document.querySelector('[data-section="project-main"]').classList.add('active');
+    
+    loadProjectConfig();
+    clearChat();
+}
+
+function closeProject() {
+    currentProject = null;
+    
+    document.getElementById('projectSidebar').style.display = 'none';
+    document.getElementById('mainSidebar').style.display = 'block';
+    
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.style.display = 'none');
+    
+    document.getElementById('projects-section').style.display = 'block';
+    
+    const mainNavLinks = document.querySelectorAll('#mainSidebar .nav-link');
+    mainNavLinks.forEach(link => link.classList.remove('active'));
+    document.querySelector('[data-section="projects"]').classList.add('active');
+}
+
+function loadProjectConfig() {
+    if (!currentProject) return;
+    
+    try {
+        const envPath = path.join(currentProject.path, '.env');
+        const packagePath = path.join(currentProject.path, 'package.json');
+        
+        if (fs.existsSync(envPath) && fs.existsSync(packagePath)) {
+            const envContent = fs.readFileSync(envPath, 'utf8');
+            const packageContent = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+            
+            const envLines = envContent.split('\n');
+            const envVars = {};
+            envLines.forEach(line => {
+                const [key, value] = line.split('=');
+                if (key && value) envVars[key] = value;
+            });
+            
+            document.getElementById('projectConfigAuthor').value = packageContent.author || '';
+            document.getElementById('projectConfigToken').value = envVars.DISCORD_TOKEN || '';
+            document.getElementById('projectConfigBotId').value = envVars.DISCORD_BOT_ID || '';
+        }
+    } catch (error) {
+        console.error('Error loading project config:', error);
+    }
+}
+
+function saveProjectConfig() {
+    if (!currentProject) return false;
+    
+    try {
+        const author = document.getElementById('projectConfigAuthor').value;
+        const token = document.getElementById('projectConfigToken').value;
+        const botId = document.getElementById('projectConfigBotId').value;
+        
+        const packagePath = path.join(currentProject.path, 'package.json');
+        const packageContent = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+        packageContent.author = author;
+        fs.writeFileSync(packagePath, JSON.stringify(packageContent, null, 2));
+        
+        const envContent = `DISCORD_TOKEN=${token}\nDISCORD_BOT_ID=${botId}`;
+        const envPath = path.join(currentProject.path, '.env');
+        fs.writeFileSync(envPath, envContent);
+        
+        return true;
+    } catch (error) {
+        console.error('Error saving project config:', error);
+        return false;
+    }
+}
+
+function setupProjectConfig() {
+    const form = document.getElementById('project-config-form');
+    if (!form) return;
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        if (saveProjectConfig()) {
+            const saveBtn = form.querySelector('.save-btn');
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Configuration Saved!';
+            saveBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+            
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.background = '';
+            }, 2000);
+        }
+    });
+}
+
+function setupChatInterface() {
+    const sendBtn = document.getElementById('sendMessage');
+    const chatInput = document.getElementById('chatInput');
+    const backBtn = document.getElementById('backToProjects');
+    
+    if (sendBtn && chatInput) {
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    }
+    
+    if (backBtn) {
+        backBtn.addEventListener('click', closeProject);
+    }
+    
+    const projectNavLinks = document.querySelectorAll('#projectSidebar .nav-link');
+    projectNavLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = link.getAttribute('data-section');
+            showProjectSection(section);
+        });
+    });
+}
+
+function showProjectSection(sectionId) {
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.style.display = 'none');
+    
+    const targetSection = document.getElementById(sectionId + '-section');
+    if (targetSection) targetSection.style.display = 'block';
+    
+    const navLinks = document.querySelectorAll('#projectSidebar .nav-link');
+    navLinks.forEach(link => link.classList.remove('active'));
+    
+    const activeLink = document.querySelector(`#projectSidebar [data-section="${sectionId}"]`);
+    if (activeLink) activeLink.classList.add('active');
+    
+    if (sectionId === 'project-config') {
+        setTimeout(loadProjectConfig, 100);
+    }
+}
+
+function addChatMessage(content, type) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${type}`;
+    messageDiv.textContent = content;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addLoadingMessage() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-message';
+    loadingDiv.innerHTML = 'AI is thinking<span class="loading-dots"></span>';
+    loadingDiv.id = 'loadingMessage';
+    
+    chatMessages.appendChild(loadingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    return loadingDiv;
+}
+
+function removeLoadingMessage() {
+    const loadingMessage = document.getElementById('loadingMessage');
+    if (loadingMessage) loadingMessage.remove();
+}
+
+function clearChat() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) chatMessages.innerHTML = '';
+}
+
+async function sendMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput.value.trim();
+    
+    if (!message || !currentProject) return;
+    
+    chatInput.value = '';
+    addChatMessage(message, 'user');
+    
+    const loadingMessage = addLoadingMessage();
+    
+    try {
+        const config = loadConfig();
+        const prompt = await loadPrompt(config.prompt || 'default');
+        
+        const response = await fetch(`${config.apiUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${config.apiKey}`
+            },
+            body: JSON.stringify({
+                model: config.model,
+                messages: [
+                    { role: 'user', content: `${prompt.system}\n\nUser request: ${message}` }
+                ]
+            })
+        });
+        
+        const data = await response.json();
+        removeLoadingMessage();
+        
+        if (data.choices && data.choices[0]) {
+            const aiResponse = data.choices[0].message.content;
+            
+            const parts = aiResponse.split('```json');
+            const explanation = parts[0].trim();
+            
+            if (explanation) {
+                addChatMessage(explanation, 'assistant');
+            }
+            
+            if (parts.length > 1) {
+                const jsonPart = parts[1].split('```')[0];
+                try {
+                    const fileData = JSON.parse(jsonPart);
+                    if (fileData.files) {
+                        await processFiles(fileData.files);
+                        addChatMessage('Files updated successfully!', 'system');
+                    }
+                } catch (jsonError) {
+                    console.error('Error parsing JSON:', jsonError);
+                    addChatMessage('AI response received but file processing failed.', 'system');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+        removeLoadingMessage();
+        addChatMessage('Error communicating with AI. Check your API configuration.', 'system');
+    }
+}
+
+async function loadPrompt(promptName) {
+    try {
+        const promptPath = path.join(__dirname, 'prompts', `${promptName}.json`);
+        const promptData = fs.readFileSync(promptPath, 'utf8');
+        return JSON.parse(promptData);
+    } catch (error) {
+        console.error('Error loading prompt:', error);
+        return { system: 'You are a helpful Discord bot developer assistant.' };
+    }
+}
+
+async function processFiles(files) {
+    if (!currentProject) return;
+    
+    for (const file of files) {
+        try {
+            const filePath = path.join(currentProject.path, file.path);
+            const fileDir = path.dirname(filePath);
+            
+            if (!fs.existsSync(fileDir)) {
+                fs.mkdirSync(fileDir, { recursive: true });
+            }
+            
+            fs.writeFileSync(filePath, file.content);
+        } catch (error) {
+            console.error(`Error processing file ${file.path}:`, error);
+        }
+    }
+}

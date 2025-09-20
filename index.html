@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="sidebar">
+    <div class="sidebar" id="mainSidebar">
         <div class="logo">DBMWAI</div>
         <nav>
             <ul class="nav-menu">
@@ -19,6 +19,23 @@
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-section="config">Config</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="sidebar" id="projectSidebar" style="display: none;">
+        <div class="project-header">
+            <button class="back-btn" id="backToProjects">&lt;</button>
+            <div class="project-title" id="currentProjectName"></div>
+        </div>
+        <nav>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-section="project-main">Main</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="project-config">Config</a>
                 </li>
             </ul>
         </nav>
@@ -70,6 +87,37 @@
                 </div>
                 
                 <button type="submit" class="btn primary save-btn">Save Configuration</button>
+            </form>
+        </div>
+
+        <div id="project-main-section" class="content-section" style="display: none;">
+            <h1 class="section-title">Ask for things</h1>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-container">
+                    <input type="text" id="chatInput" placeholder="What would you like to add to your bot?" class="chat-input">
+                    <button id="sendMessage" class="btn primary send-btn">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="project-config-section" class="content-section" style="display: none;">
+            <h1 class="section-title">Project Config</h1>
+            <form id="project-config-form" class="config-form">
+                <div class="input-group">
+                    <label for="projectConfigAuthor">Project Author</label>
+                    <input type="text" id="projectConfigAuthor" required>
+                </div>
+                <div class="input-group">
+                    <label for="projectConfigToken">Discord Bot Token</label>
+                    <input type="text" id="projectConfigToken" placeholder="Your bot token" class="api-key-input" required>
+                </div>
+                <div class="input-group">
+                    <label for="projectConfigBotId">Discord Bot ID</label>
+                    <input type="text" id="projectConfigBotId" placeholder="Your bot ID" required>
+                </div>
+                
+                <button type="submit" class="btn primary save-btn">Save Project Configuration</button>
             </form>
         </div>
     </div>
