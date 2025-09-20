@@ -123,6 +123,140 @@ function setupConfigForm() {
     });
 }
 
+function getProjectsPath() {
+    const { app } = require('electron').remote || require('@electron/remote');
+    const userDataPath = app.getPath('userData');
+    return path.join(userDataPath, 'Projects');
+}
+
+function loadProjects() {
+    try {
+        const projectsPath = getProjectsPath();
+        if (!fs.existsSync(projectsPath)) {
+            return [];
+        }
+        
+        const projects = [];
+        const folders = fs.readdirSync(projectsPath);
+        
+        for (const folder of folders) {
+            const projectPath = path.join(projectsPath, folder);
+            const packagePath = path.join(projectPath, 'package.json');
+            
+            if (fs.existsSync(packagePath)) {
+                const packageData = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+                projects.push({
+                    name: packageData.name,
+                    description: packageData.description,
+                    author: packageData.author,
+                    path: projectPath
+                });
+            }
+        }
+        
+        return projects;
+    } catch (error) {
+        console.error('Error loading projects:', error);
+        return [];
+    }
+}
+
+function createProject(name, description, author) {
+    try {
+        const projectsPath = getProjectsPath();
+        const projectPath = path.join(projectsPath, name);
+        
+        if (!fs.existsSync(projectsPath)) {
+            fs.mkdirSync(projectsPath, { recursive: true });
+        }
+        
+        if (fs.existsSync(projectPath)) {
+            return false;
+        }
+        
+        fs.mkdirSync(projectPath, { recursive: true });
+        
+        const packageJson = {
+            name: name,
+            version: '1.0.0',
+            description: description,
+            main: 'index.js',
+            author: author,
+            dependencies: {
+                'discord.js': '^14.0.0'
+            }
+        };
+        
+        const packagePath = path.join(projectPath, 'package.json');
+        fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2));
+        
+        return true;
+    } catch (error) {
+        console.error('Error creating project:', error);
+        return false;
+    }
+}
+
+function displayProjects() {
+    const projectsList = document.getElementById('projectsList');
+    if (!projectsList) return;
+    
+    const projects = loadProjects();
+    projectsList.innerHTML = '';
+    
+    projects.forEach(project => {
+        const projectCard = document.createElement('div');
+        projectCard.className = 'project-card';
+        projectCard.innerHTML = `
+            <h3>${project.name}</h3>
+            <p>${project.description}</p>
+            <div class="project-author">by ${project.author}</div>
+        `;
+        projectsList.appendChild(projectCard);
+    });
+}
+
+function setupProjectModal() {
+    const modal = document.getElementById('createProjectModal');
+    const createBtn = document.getElementById('createProjectCard');
+    const cancelBtn = document.getElementById('cancelProjectBtn');
+    const form = document.getElementById('createProjectForm');
+    
+    if (!modal || !createBtn || !cancelBtn || !form) return;
+    
+    createBtn.addEventListener('click', () => {
+        modal.style.display = 'block';
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        form.reset();
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            form.reset();
+        }
+    });
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('projectName').value.trim();
+        const description = document.getElementById('projectDescription').value.trim();
+        const author = document.getElementById('projectAuthor').value.trim();
+        
+        if (!name || !description || !author) return;
+        
+        if (createProject(name, description, author)) {
+            modal.style.display = 'none';
+            form.reset();
+            displayProjects();
+        }
+    });
+}
+
 function showSection(sectionId) {
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => {
@@ -160,9 +294,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (section === 'config') {
                 setTimeout(setupConfigForm, 100);
+            } else if (section === 'projects') {
+                setTimeout(() => {
+                    displayProjects();
+                    setupProjectModal();
+                }, 100);
             }
         });
     });
     
     setupConfigForm();
+    setupProjectModal();
+    displayProjects();
 });

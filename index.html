@@ -32,7 +32,14 @@
 
         <div id="projects-section" class="content-section" style="display: none;">
             <h1 class="section-title">Projects</h1>
-            <div class="soon-message">Soon!</div>
+            <div class="projects-container">
+                <div class="create-project-card" id="createProjectCard">
+                    <div class="create-project-content">
+                        <span>Create a project</span>
+                    </div>
+                </div>
+                <div id="projectsList" class="projects-list"></div>
+            </div>
         </div>
 
         <div id="config-section" class="content-section" style="display: none;">
@@ -63,6 +70,30 @@
                 </div>
                 
                 <button type="submit" class="btn primary save-btn">Save Configuration</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="createProjectModal" class="modal">
+        <div class="modal-content">
+            <h2>Create Project</h2>
+            <form id="createProjectForm">
+                <div class="input-group">
+                    <label for="projectName">Project name</label>
+                    <input type="text" id="projectName" required>
+                </div>
+                <div class="input-group">
+                    <label for="projectDescription">Project Description</label>
+                    <input type="text" id="projectDescription" required>
+                </div>
+                <div class="input-group">
+                    <label for="projectAuthor">Project Author</label>
+                    <input type="text" id="projectAuthor" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn primary">Create</button>
+                    <button type="button" class="btn secondary" id="cancelProjectBtn">Cancel</button>
+                </div>
             </form>
         </div>
     </div>
