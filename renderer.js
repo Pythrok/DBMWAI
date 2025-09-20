@@ -317,7 +317,47 @@ document.addEventListener('DOMContentLoaded', () => {
     setupChatInterface();
     setupProjectConfig();
     setupConsoleInterface();
+    setupAppClosing();
 });
+
+function setupAppClosing() {
+    const { ipcRenderer } = require('electron');
+    
+    ipcRenderer.on('app-closing', async () => {
+        if (botProcess) {
+            addConsoleLog('Application closing - stopping bot...', 'info');
+            
+            try {
+                botProcess.kill('SIGTERM');
+                
+                const waitForClose = new Promise((resolve) => {
+                    if (!botProcess || botProcess.killed) {
+                        resolve();
+                        return;
+                    }
+                    
+                    botProcess.once('close', resolve);
+                    
+                    setTimeout(() => {
+                        if (botProcess && !botProcess.killed) {
+                            botProcess.kill('SIGKILL');
+                        }
+                        resolve();
+                    }, 3000);
+                });
+                
+                await waitForClose;
+                addConsoleLog('Bot stopped successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error stopping bot during app close:', error);
+            }
+        }
+        
+        const { app } = require('electron').remote || require('@electron/remote');
+        app.quit();
+    });
+}
 
 let currentProject = null;
 let botProcess = null;

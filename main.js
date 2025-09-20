@@ -15,6 +15,14 @@ function createWindow() {
     icon: path.join(__dirname, 'icon.ico'),
     show: false
   });
+  
+  mainWindow.on('close', (event) => {
+    if (!app.isQuiting) {
+      event.preventDefault();
+      app.emit('before-quit', event);
+      app.isQuiting = true;
+    }
+  });
 
   mainWindow.loadFile('index.html');
   
@@ -34,6 +42,20 @@ app.whenReady().then(createWindow);
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('before-quit', async (event) => {
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    event.preventDefault();
+    
+    const mainWindow = windows[0];
+    mainWindow.webContents.send('app-closing');
+    
+    setTimeout(() => {
+      app.quit();
+    }, 5000);
   }
 });
 
