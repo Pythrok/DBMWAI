@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBMWAI - Discord Bot Maker With AI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">DBMWAI</div>
+        <nav>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-section="home">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="projects">Projects</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="config">Config</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div id="home-section" class="content-section">
+            <h1 class="section-title">Discord Bot Maker With AI</h1>
+            <p class="section-subtitle" id="random-phrase">Loading...</p>
+        </div>
+
+        <div id="projects-section" class="content-section" style="display: none;">
+            <h1 class="section-title">Projects</h1>
+            <div class="soon-message">Soon!</div>
+        </div>
+
+        <div id="config-section" class="content-section" style="display: none;">
+            <h1 class="section-title">Config</h1>
+            <form id="config-form" class="config-form">
+                <div class="input-group">
+                    <label for="apiUrl">API URL</label>
+                    <input type="text" id="apiUrl" placeholder="Your API URL">
+                </div>
+                <div class="input-group">
+                    <label for="apiKey">API KEY</label>
+                    <input type="text" id="apiKey" placeholder="Your API KEY" class="api-key-input">
+                </div>
+                <div class="input-group">
+                    <label for="model">Model</label>
+                    <input type="text" id="model" placeholder="Model name">
+                </div>
+                
+                <div class="separator">
+                    <span>Advanced</span>
+                </div>
+                
+                <div class="input-group">
+                    <label for="prompt">Prompt</label>
+                    <select id="prompt">
+                        <option value="default">default</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn primary save-btn">Save Configuration</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

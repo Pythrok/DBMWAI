@@ -1,0 +1,36 @@
+{
+  "name": "dbmwai",
+  "version": "1.0.0",
+  "description": "Discord Bot Maker With AI",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dev": "electron . --dev"
+  },
+  "build": {
+    "appId": "com.mixi.dbmwai",
+    "productName": "DBMWAI",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "phrases.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    }
+  },
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "@electron/remote": "^2.0.0"
+  }
+}
