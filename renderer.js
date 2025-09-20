@@ -161,7 +161,7 @@ function loadProjects() {
     }
 }
 
-function createProject(name, description, author) {
+function createProject(name, description, author, botToken, botId) {
     try {
         const projectsPath = getProjectsPath();
         const projectPath = path.join(projectsPath, name);
@@ -183,12 +183,17 @@ function createProject(name, description, author) {
             main: 'index.js',
             author: author,
             dependencies: {
-                'discord.js': '^14.0.0'
+                'discord.js': '^14.0.0',
+                'dotenv': '^16.0.0'
             }
         };
         
         const packagePath = path.join(projectPath, 'package.json');
         fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2));
+        
+        const envContent = `DISCORD_TOKEN=${botToken}\nDISCORD_BOT_ID=${botId}`;
+        const envPath = path.join(projectPath, '.env');
+        fs.writeFileSync(envPath, envContent);
         
         return true;
     } catch (error) {
@@ -246,10 +251,12 @@ function setupProjectModal() {
         const name = document.getElementById('projectName').value.trim();
         const description = document.getElementById('projectDescription').value.trim();
         const author = document.getElementById('projectAuthor').value.trim();
+        const botToken = document.getElementById('botToken').value.trim();
+        const botId = document.getElementById('botId').value.trim();
         
-        if (!name || !description || !author) return;
+        if (!name || !description || !author || !botToken || !botId) return;
         
-        if (createProject(name, description, author)) {
+        if (createProject(name, description, author, botToken, botId)) {
             modal.style.display = 'none';
             form.reset();
             displayProjects();
