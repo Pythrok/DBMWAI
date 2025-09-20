@@ -204,6 +204,28 @@ body {
     .project-title {
         font-size: 1.1rem;
     }
+    
+    .console-container {
+        height: 400px;
+    }
+    
+    .console-controls {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .console-btn {
+        flex: 1;
+        min-width: 80px;
+    }
+    
+    .bot-status {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+        margin-top: 10px;
+    }
 }
 
 .config-form {
@@ -589,4 +611,144 @@ body {
     0%, 20% { content: '.'; }
     40% { content: '..'; }
     60%, 100% { content: '...'; }
+}
+
+.console-container {
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.console-controls {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.console-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.start-btn {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.start-btn:hover:not(:disabled) {
+    background: linear-gradient(45deg, #45a049, #388e3c);
+    transform: translateY(-1px);
+}
+
+.restart-btn {
+    background: linear-gradient(45deg, #FF9800, #F57C00);
+    color: white;
+}
+
+.restart-btn:hover:not(:disabled) {
+    background: linear-gradient(45deg, #F57C00, #E65100);
+    transform: translateY(-1px);
+}
+
+.stop-btn {
+    background: linear-gradient(45deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.stop-btn:hover:not(:disabled) {
+    background: linear-gradient(45deg, #d32f2f, #b71c1c);
+    transform: translateY(-1px);
+}
+
+.console-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.bot-status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+.status-value {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-value.stopped {
+    background: rgba(244, 67, 54, 0.2);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.4);
+}
+
+.status-value.running {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.status-value.starting {
+    background: rgba(255, 152, 0, 0.2);
+    color: #FF9800;
+    border: 1px solid rgba(255, 152, 0, 0.4);
+}
+
+.console-output {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    background: #1a1a1a;
+    color: #f8f8f2;
+}
+
+.console-line {
+    margin-bottom: 4px;
+    word-wrap: break-word;
+}
+
+.console-line.error {
+    color: #ff6b6b;
+}
+
+.console-line.warn {
+    color: #ffd93d;
+}
+
+.console-line.info {
+    color: #74c0fc;
+}
+
+.console-line.success {
+    color: #51cf66;
+}
+
+.console-line.timestamp {
+    color: #868e96;
+    font-size: 0.8rem;
 }

@@ -316,9 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
     displayProjects();
     setupChatInterface();
     setupProjectConfig();
+    setupConsoleInterface();
 });
 
 let currentProject = null;
+let botProcess = null;
 
 function openProject(project) {
     currentProject = project;
@@ -341,6 +343,10 @@ function openProject(project) {
 }
 
 function closeProject() {
+    if (botProcess) {
+        stopBot();
+    }
+    
     currentProject = null;
     
     document.getElementById('projectSidebar').style.display = 'none';
@@ -354,6 +360,9 @@ function closeProject() {
     const mainNavLinks = document.querySelectorAll('#mainSidebar .nav-link');
     mainNavLinks.forEach(link => link.classList.remove('active'));
     document.querySelector('[data-section="projects"]').classList.add('active');
+    
+    clearConsole();
+    updateBotStatus('stopped');
 }
 
 function loadProjectConfig() {
@@ -717,5 +726,255 @@ async function processFiles(files) {
         } catch (error) {
             console.error(`Error processing file ${file.path}:`, error);
         }
+    }
+}
+
+function setupConsoleInterface() {
+    const startBtn = document.getElementById('startBot');
+    const restartBtn = document.getElementById('restartBot');
+    const stopBtn = document.getElementById('stopBot');
+    
+    if (startBtn) {
+        startBtn.addEventListener('click', startBot);
+    }
+    
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartBot);
+    }
+    
+    if (stopBtn) {
+        stopBtn.addEventListener('click', stopBot);
+    }
+}
+
+function updateBotStatus(status) {
+    const statusElement = document.getElementById('botStatus');
+    const startBtn = document.getElementById('startBot');
+    const restartBtn = document.getElementById('restartBot');
+    const stopBtn = document.getElementById('stopBot');
+    
+    if (!statusElement || !startBtn || !restartBtn || !stopBtn) return;
+    
+    statusElement.className = `status-value ${status}`;
+    
+    switch (status) {
+        case 'stopped':
+            statusElement.textContent = 'Stopped';
+            startBtn.disabled = false;
+            restartBtn.disabled = true;
+            stopBtn.disabled = true;
+            break;
+        case 'starting':
+            statusElement.textContent = 'Starting';
+            startBtn.disabled = true;
+            restartBtn.disabled = true;
+            stopBtn.disabled = true;
+            break;
+        case 'running':
+            statusElement.textContent = 'Running';
+            startBtn.disabled = true;
+            restartBtn.disabled = false;
+            stopBtn.disabled = false;
+            break;
+    }
+}
+
+function addConsoleLog(message, type = 'info') {
+    const consoleOutput = document.getElementById('consoleOutput');
+    if (!consoleOutput) return;
+    
+    const timestamp = new Date().toLocaleTimeString();
+    const logLine = document.createElement('div');
+    logLine.className = `console-line ${type}`;
+    
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'timestamp';
+    timestampSpan.textContent = `[${timestamp}] `;
+    
+    logLine.appendChild(timestampSpan);
+    logLine.appendChild(document.createTextNode(message));
+    
+    consoleOutput.appendChild(logLine);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    
+    if (consoleOutput.children.length > 1000) {
+        consoleOutput.removeChild(consoleOutput.firstChild);
+    }
+}
+
+function clearConsole() {
+    const consoleOutput = document.getElementById('consoleOutput');
+    if (consoleOutput) {
+        consoleOutput.innerHTML = '';
+    }
+}
+
+async function startBot() {
+    if (!currentProject || botProcess) return;
+    
+    try {
+        updateBotStatus('starting');
+        addConsoleLog('Starting Discord bot...', 'info');
+        
+        const indexPath = path.join(currentProject.path, 'index.js');
+        if (!fs.existsSync(indexPath)) {
+            addConsoleLog('Error: index.js not found. Please create your bot file first.', 'error');
+            updateBotStatus('stopped');
+            return;
+        }
+        
+        const nodeModulesPath = path.join(currentProject.path, 'node_modules');
+        if (!fs.existsSync(nodeModulesPath)) {
+            addConsoleLog('Installing dependencies...', 'info');
+            
+            const { spawn } = require('child_process');
+            const isWindows = process.platform === 'win32';
+            const npmCommand = isWindows ? 'npm.cmd' : 'npm';
+            
+            const npmProcess = spawn(npmCommand, ['install'], {
+                cwd: currentProject.path,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                shell: true
+            });
+            
+            npmProcess.stdout.on('data', (data) => {
+                const output = data.toString().trim();
+                if (output) {
+                    output.split('\n').forEach(line => {
+                        if (line.trim()) addConsoleLog(`[NPM] ${line}`, 'info');
+                    });
+                }
+            });
+            
+            npmProcess.stderr.on('data', (data) => {
+                const output = data.toString().trim();
+                if (output) {
+                    output.split('\n').forEach(line => {
+                        if (line.trim()) addConsoleLog(`[NPM] ${line}`, 'warn');
+                    });
+                }
+            });
+            
+            npmProcess.on('close', (code) => {
+                if (code === 0) {
+                    addConsoleLog('Dependencies installed successfully!', 'success');
+                    startBotProcess();
+                } else {
+                    addConsoleLog(`npm install failed with code ${code}`, 'error');
+                    updateBotStatus('stopped');
+                }
+            });
+            
+            npmProcess.on('error', (error) => {
+                addConsoleLog(`Failed to run npm install: ${error.message}`, 'error');
+                addConsoleLog('Make sure Node.js and npm are installed and added to PATH', 'error');
+                addConsoleLog('You can install Node.js from: https://nodejs.org/', 'info');
+                updateBotStatus('stopped');
+            });
+            
+            return;
+        }
+        
+        startBotProcess();
+        
+    } catch (error) {
+        addConsoleLog(`Error starting bot: ${error.message}`, 'error');
+        updateBotStatus('stopped');
+    }
+}
+
+function startBotProcess() {
+    try {
+        const { spawn } = require('child_process');
+        
+        botProcess = spawn('node', ['index.js'], {
+            cwd: currentProject.path,
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+        
+        botProcess.stdout.on('data', (data) => {
+            const output = data.toString().trim();
+            if (output) {
+                output.split('\n').forEach(line => {
+                    if (line.trim()) addConsoleLog(line, 'info');
+                });
+            }
+        });
+        
+        botProcess.stderr.on('data', (data) => {
+            const output = data.toString().trim();
+            if (output) {
+                output.split('\n').forEach(line => {
+                    if (line.trim()) addConsoleLog(line, 'error');
+                });
+            }
+        });
+        
+        botProcess.on('close', (code) => {
+            if (code === 0) {
+                addConsoleLog('Bot stopped successfully.', 'success');
+            } else {
+                addConsoleLog(`Bot exited with code ${code}`, 'error');
+            }
+            botProcess = null;
+            updateBotStatus('stopped');
+        });
+        
+        botProcess.on('error', (error) => {
+            addConsoleLog(`Failed to start bot: ${error.message}`, 'error');
+            botProcess = null;
+            updateBotStatus('stopped');
+        });
+        
+        setTimeout(() => {
+            if (botProcess && !botProcess.killed) {
+                updateBotStatus('running');
+                addConsoleLog('Bot started successfully!', 'success');
+            }
+        }, 2000);
+        
+    } catch (error) {
+        addConsoleLog(`Error starting bot process: ${error.message}`, 'error');
+        updateBotStatus('stopped');
+    }
+}
+
+async function stopBot() {
+    if (!botProcess) return;
+    
+    try {
+        addConsoleLog('Stopping Discord bot...', 'info');
+        botProcess.kill('SIGTERM');
+        
+        setTimeout(() => {
+            if (botProcess && !botProcess.killed) {
+                botProcess.kill('SIGKILL');
+            }
+        }, 5000);
+        
+    } catch (error) {
+        addConsoleLog(`Error stopping bot: ${error.message}`, 'error');
+    }
+}
+
+async function restartBot() {
+    if (!botProcess) {
+        startBot();
+        return;
+    }
+    
+    addConsoleLog('Restarting Discord bot...', 'info');
+    
+    const startAfterStop = () => {
+        setTimeout(() => {
+            startBot();
+        }, 1000);
+    };
+    
+    if (botProcess) {
+        botProcess.once('close', startAfterStop);
+        stopBot();
+    } else {
+        startAfterStop();
     }
 }

@@ -35,6 +35,9 @@
                     <a href="#" class="nav-link active" data-section="project-main">Main</a>
                 </li>
                 <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="project-console">Console</a>
+                </li>
+                <li class="nav-item">
                     <a href="#" class="nav-link" data-section="project-config">Config</a>
                 </li>
             </ul>
@@ -98,6 +101,22 @@
                     <input type="text" id="chatInput" placeholder="What would you like to add to your bot?" class="chat-input">
                     <button id="sendMessage" class="btn primary send-btn">Send</button>
                 </div>
+            </div>
+        </div>
+
+        <div id="project-console-section" class="content-section" style="display: none;">
+            <h1 class="section-title">Console</h1>
+            <div class="console-container">
+                <div class="console-controls">
+                    <button id="startBot" class="btn console-btn start-btn">Start Bot</button>
+                    <button id="restartBot" class="btn console-btn restart-btn" disabled>Restart Bot</button>
+                    <button id="stopBot" class="btn console-btn stop-btn" disabled>Stop Bot</button>
+                    <div class="bot-status">
+                        <span class="status-label">Status:</span>
+                        <span id="botStatus" class="status-value stopped">Stopped</span>
+                    </div>
+                </div>
+                <div class="console-output" id="consoleOutput"></div>
             </div>
         </div>
 
