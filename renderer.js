@@ -337,7 +337,7 @@ function openProject(project) {
     document.querySelector('[data-section="project-main"]').classList.add('active');
     
     loadProjectConfig();
-    clearChat();
+    loadChatHistory();
 }
 
 function closeProject() {
@@ -482,6 +482,8 @@ function addChatMessage(content, type) {
     
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    saveChatHistory();
 }
 
 function addLoadingMessage() {
@@ -509,6 +511,61 @@ function clearChat() {
     if (chatMessages) chatMessages.innerHTML = '';
 }
 
+function getChatHistoryPath() {
+    if (!currentProject) return null;
+    return path.join(currentProject.path, 'chat_history.json');
+}
+
+function loadChatHistory() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages || !currentProject) return;
+    
+    chatMessages.innerHTML = '';
+    
+    try {
+        const historyPath = getChatHistoryPath();
+        if (fs.existsSync(historyPath)) {
+            const historyData = fs.readFileSync(historyPath, 'utf8');
+            const history = JSON.parse(historyData);
+            
+            history.forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${message.type}`;
+                messageDiv.textContent = message.content;
+                chatMessages.appendChild(messageDiv);
+            });
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    } catch (error) {
+        console.error('Error loading chat history:', error);
+    }
+}
+
+function saveChatHistory() {
+    if (!currentProject) return;
+    
+    try {
+        const chatMessages = document.getElementById('chatMessages');
+        const messages = [];
+        
+        chatMessages.querySelectorAll('.chat-message').forEach(messageDiv => {
+            const type = messageDiv.classList.contains('user') ? 'user' : 
+                        messageDiv.classList.contains('assistant') ? 'assistant' : 'system';
+            messages.push({
+                content: messageDiv.textContent,
+                type: type,
+                timestamp: Date.now()
+            });
+        });
+        
+        const historyPath = getChatHistoryPath();
+        fs.writeFileSync(historyPath, JSON.stringify(messages, null, 2));
+    } catch (error) {
+        console.error('Error saving chat history:', error);
+    }
+}
+
 async function sendMessage() {
     const chatInput = document.getElementById('chatInput');
     const message = chatInput.value.trim();
@@ -523,6 +580,9 @@ async function sendMessage() {
     try {
         const config = loadConfig();
         const prompt = await loadPrompt(config.prompt || 'default');
+        const projectFiles = await getProjectFiles();
+        
+        const fullMessage = `${prompt.system}\n\nCurrent project files:\n${projectFiles}\n\nUser request: ${message}`;
         
         const response = await fetch(`${config.apiUrl}/chat/completions`, {
             method: 'POST',
@@ -533,7 +593,7 @@ async function sendMessage() {
             body: JSON.stringify({
                 model: config.model,
                 messages: [
-                    { role: 'user', content: `${prompt.system}\n\nUser request: ${message}` }
+                    { role: 'user', content: fullMessage }
                 ]
             })
         });
@@ -580,6 +640,64 @@ async function loadPrompt(promptName) {
     } catch (error) {
         console.error('Error loading prompt:', error);
         return { system: 'You are a helpful Discord bot developer assistant.' };
+    }
+}
+
+async function getProjectFiles() {
+    if (!currentProject) return '';
+    
+    try {
+        const files = [];
+        const projectPath = currentProject.path;
+        
+        function scanDirectory(dir, relativePath = '') {
+            const items = fs.readdirSync(dir);
+            
+            for (const item of items) {
+                const fullPath = path.join(dir, item);
+                const relativeItemPath = path.join(relativePath, item);
+                const stat = fs.statSync(fullPath);
+                
+                if (stat.isDirectory()) {
+                    if (!['node_modules', '.git', 'dist'].includes(item)) {
+                        scanDirectory(fullPath, relativeItemPath);
+                    }
+                } else if (stat.isFile()) {
+                    if (item !== 'chat_history.json' && 
+                        !item.endsWith('.log') && 
+                        !item.startsWith('.') && 
+                        item !== 'package-lock.json') {
+                        
+                        const ext = path.extname(item).toLowerCase();
+                        if (['.js', '.json', '.md', '.txt', '.env'].includes(ext)) {
+                            try {
+                                const content = fs.readFileSync(fullPath, 'utf8');
+                                files.push({
+                                    path: relativeItemPath.replace(/\\/g, '/'),
+                                    content: content
+                                });
+                            } catch (readError) {
+                                console.error(`Error reading file ${relativeItemPath}:`, readError);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        scanDirectory(projectPath);
+        
+        if (files.length === 0) {
+            return 'No existing files in project.';
+        }
+        
+        return files.map(file => 
+            `--- ${file.path} ---\n${file.content}\n`
+        ).join('\n');
+        
+    } catch (error) {
+        console.error('Error scanning project files:', error);
+        return 'Error reading project files.';
     }
 }
 
